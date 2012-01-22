@@ -147,6 +147,14 @@
 		}
 	}
 
+	function nil()
+	{
+		return function (IParseState $state)
+				{
+					return array(NULL, $state);
+				};
+	}
+
 	function expectf($f, $desc)
 	{
 		return function (IParseState $state) use($f, $desc)
@@ -154,7 +162,6 @@
 					try
 					{
 						list($nextToken, $remainingTokens) = $state->nextToken();
-					print('expect '.$desc.' '.$nextToken."\n");
 					}
 					catch (TokenExhaustionException $e)
 					{
@@ -341,9 +348,21 @@
 		return expectf(function ($token) { return preg_match('/[0-9A-Za-z]/', $token); }, 'alnum');
 	}
 
-	function arrstseq($sequence, $ignoreNulls = TRUE)
+	function withstate(IState $scopedState, $parser, $keepResult = FALSE)
 	{
-		return function (IParseState $state) use($sequence, $ignoreNulls)
+		return function (IParseState $state) use($scopedState, $parser, $keepResult)
+				{
+					$oldState = $state->extrude();
+
+					list($result, $newState) = $parser($state->inject($scopedState));
+
+					return array($keepResult ? $result : $newState->get(), $newState->inject($oldState));
+				};
+	}
+
+	function arrstseq($sequence, $keepResult = TRUE, $freshState = TRUE, $ignoreNulls = TRUE)
+	{
+		$f = function (IParseState $state) use($sequence, $ignoreNulls)
 				{
 					foreach ($sequence as $field => $p)
 					{
@@ -361,18 +380,8 @@
 
 					return array($state->get(), $state);
 				};
-	}
 
-	function withstate(IState $scopedState, $parser)
-	{
-		return function (IParseState $state) use($scopedState, $parser)
-				{
-					$oldState = $state->extrude();
-
-					list($result, $newState) = $parser($state->inject($scopedState));
-
-					return array($newState->get(), $newState->inject($oldState));
-				};
+		return $freshState ? withstate(ArrayState::mk(), $f, $keepResult) : $f;
 	}
 
 ?>
