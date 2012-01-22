@@ -66,7 +66,10 @@
 	function fare()
 	{
 		return arrstseq(array(
-				'type' => choice(cnst(space(), 'routing'), cnst(expect('M'), 'mileage')),
+				'type' => choice(array(
+						cnst(space(), 'routing'),
+						cnst(expect('M'), 'mileage'),
+						)),
 				'fare' => currency(),
 				'basis' => basis(),
 				'ticketdesignator' => attempt(td()),
@@ -117,7 +120,21 @@
 
 	function extra()
 	{
-		return last(array(space(), repeat(seq(array(choice(expectstr('PC'), str(seq(array(num(), expect('S'))))), currency())), 1)));
+		return seq(array(
+				choice(array(
+						expectstr('PC'),
+						str(seq(array(
+								num(),
+								expect('S'),
+								))),
+						)),
+				currency(),
+				));
+	}
+
+	function extras()
+	{
+		return last(array(space(), repeat(extra(), 1)));
 	}
 
 	function roe() { return last(array(space(), expectstr('ROE'), floatrate())); }
@@ -140,7 +157,10 @@
 	{
 		return repeat(arrstseq(array(
 				0 => discard(space()),
-				1 => discard(choice(expectstr('FARE'), expectstr('EQU'))),
+				1 => discard(choice(array(
+						expectstr('FARE'),
+						expectstr('EQU'),
+						))),
 				2 => discard(space()),
 				'currency' => currencycode(),
 				3 => discard(space()),
@@ -151,7 +171,7 @@
 	function farecalc()
 	{
 		return arrstseq(array(
-				'extra' => attempt(extra()),
+				'extra' => attempt(extras()),
 				'end' => fareend(),
 				'fare' => faretot(),
 				));

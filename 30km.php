@@ -192,9 +192,14 @@
 				};
 	}
 
+	function cnst($parser, $value)
+	{
+		return transform($parser, K($value));
+	}
+
 	function discard($parser)
 	{
-		return transform($parser, K(NULL));
+		return cnst($parser, NULL);
 	}
 
 	function str($parser)
@@ -222,11 +227,6 @@
 				};
 	}
 
-	function cnst($parser, $value)
-	{
-		return transform($parser, K($value));
-	}
-
 	function boolattempt($parser)
 	{
 		return function (IParseState $state) use($parser)
@@ -244,7 +244,7 @@
 				};
 	}
 
-	function seq($parsers, $ignoreNulls = TRUE)
+	function seq(array $parsers, $ignoreNulls = TRUE)
 	{
 		return function (IParseState $state) use($parsers, $ignoreNulls)
 				{
@@ -264,7 +264,7 @@
 				};
 	}
 
-	function last($parsers, $ignoreNulls = TRUE)
+	function last(array $parsers, $ignoreNulls = TRUE)
 	{
 		return function (IParseState $state) use($parsers, $ignoreNulls)
 				{
@@ -276,13 +276,10 @@
 				};
 	}
 
-	function choice()
+	function choice(array $parsers)
 	{
-		$parsers = func_get_args();
-
 		return function(IParseState $state) use($parsers)
 				{
-					$result = NULL;
 					$exc = NULL;
 
 					foreach ($parsers as $p)
@@ -360,7 +357,7 @@
 				};
 	}
 
-	function arrstseq($sequence, $keepResult = TRUE, $freshState = TRUE, $ignoreNulls = TRUE)
+	function arrstseq(array $sequence, $keepResult = TRUE, $freshState = TRUE, $ignoreNulls = TRUE)
 	{
 		$f = function (IParseState $state) use($sequence, $ignoreNulls)
 				{
