@@ -1,0 +1,7 @@
+A simple parser library, relatively expressive, but neither space- nor time-
+efficient.
+
+A sketch of linear fare parser (Apollo format) is included. We're using a
+finite state machine in production for this, which is robust and efficient,
+but not quite as readable.
+
