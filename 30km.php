@@ -215,9 +215,31 @@
 				};
 	}
 
+	function cnst($parser, $value)
+	{
+		return transform($parser, K($value));
+	}
+
+	function boolattempt($parser)
+	{
+		return function (IParseState $state) use($parser)
+				{
+					$p = attempt(cnst($parser, TRUE));
+
+					list($result, $state) = $p($state);
+
+					if (is_null($result))
+					{
+						return array(FALSE, $state);
+					}
+
+					return array($result, $state);
+				};
+	}
+
 	function seq($parsers, $ignoreNulls = TRUE)
 	{
-		return function (IParseState $state) use($parsers)
+		return function (IParseState $state) use($parsers, $ignoreNulls)
 				{
 					$result = array();
 
@@ -225,13 +247,25 @@
 					{
 						list($res, $state) = $p($state);
 
-						if (! is_null($res))
+						if ((! $ignoreNulls) || (! is_null($res)))
 						{
 							$result[] = $res;
 						}
 					}
 
 					return array($result, $state);
+				};
+	}
+
+	function last($parsers, $ignoreNulls = TRUE)
+	{
+		return function (IParseState $state) use($parsers, $ignoreNulls)
+				{
+					$parser = seq($parsers, $ignoreNulls);
+
+					list($res, $state) = $parser($state);
+
+					return array(array_pop($res), $state);
 				};
 	}
 
@@ -317,7 +351,7 @@
 
 						$st = $state->get();
 
-						if (! is_null($result))
+						if ((! $ignoreNulls) || (! is_null($result)))
 						{
 							$st[$field] = $result;
 						}

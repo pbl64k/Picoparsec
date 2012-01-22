@@ -2,9 +2,9 @@
 
 	// A sketch of linear fare parser (Apollo format)
 
-	require_once(dirname(__FILE__).'/30km.php');
+	error_reporting(E_ALL | E_STRICT);
 
-	function parse($parser, $string) { print_r($parser(ParseState::mk(StringToCharTokenList::mk($string), ArrayState::mk()))); }
+	require_once(dirname(__FILE__).'/30km.php');
 
 	function airport() { return str(repeat(alpha(), 3, 3)); }
 
@@ -14,78 +14,57 @@
 
 	function td()
 	{
-		return seq(array(
-				discard(expect('/')),
-				str(repeat(alnum(), 1))
-				));
+		return last(array(expect('/'), str(repeat(alnum(), 1))));
 	}
 
 	function currency()
 	{
-		return transform(str(seq(array(
-				str(repeat(num())),
-				expect('.'),
-				str(repeat(num(), 0, 2))
-				))), function ($x) { return floatval($x); });
+		return transform(
+				str(seq(array(
+						str(repeat(num())),
+						expect('.'),
+						str(repeat(num(), 0, 2))
+						))),
+				function ($x)
+				{
+					return sprintf('%.2f', floatval($x));
+				}
+				);
 	}
 
 	function destination()
 	{
 		return arrstseq(array(
-				'x' => attempt(transform(expectstr('X/'), K(TRUE))),
-				'e' => attempt(transform(expectstr('E/'), K(TRUE))),
+				'x' => boolattempt(expectstr('X/')),
+				'e' => boolattempt(expectstr('E/')),
 				'airport' => airport(),
 				));
 	}
 
-	function stopover()
-	{
-		return seq(array(
-				discard(expect('S')),
-				currency()
-				));
-	}
+	function stopover() { return last(array(expect('S'), currency())); }
 
-	function stopovers()
-	{
-		return seq(array(
-				discard(space()),
-				repeat(stopover(), 1)
-				));
-	}
+	function stopovers() { return last(array(space(), repeat(stopover(), 1))); }
 
-	function surcharge()
-	{
-		return seq(array(
-				discard(expect('Q')),
-				currency()
-				));
-	}
+	function surcharge() { return last(array(expect('Q'), currency())); }
 
-	function surcharges()
-	{
-		return seq(array(
-				discard(space()),
-				repeat(surcharge(), 1)
-				));
-	}
+	function surcharges() { return last(array(space(), repeat(surcharge(), 1))); }
 
 	function fare()
 	{
 		return arrstseq(array(
-				'type' => choice(space(), expect('M')),
+				'type' => choice(cnst(space(), 'routing'), cnst(expect('M'), 'mileage')),
 				'fare' => currency(),
 				'basis' => basis(),
-				'td' => attempt(td()),
+				'ticketdesignator' => attempt(td()),
 				));
 	}
 
 	function financial()
 	{
 		return arrstseq(array(
-				'so' => attempt(stopovers()),
-				'fs' => attempt(surcharges()),
-				'fare' => attempt(fare()),
+				'stopovers' => attempt(stopovers()),
+				'surcharges' => attempt(surcharges()),
+				'fare' => attempt(withstate(ArrayState::mk(), fare())),
 				));
 	}
 
@@ -103,7 +82,7 @@
 
 					list($segment, $st) = $segmentParser($st);
 
-					return array($segment, $st->set(array('departure' => $segment['destination']['airport'])));
+					return array($segment, $st->set(array('departure' => $segment['destination'])));
 				};
 	}
 
@@ -117,7 +96,7 @@
 
 					$segmentParser = repeat(segment(), 1);
 
-					return $segmentParser($st->set(array('departure' => $departure)));
+					return $segmentParser($st->set(array('departure' => array('airport' => $departure))));
 				};
 	}
 
@@ -126,6 +105,11 @@
 	$fc[] = 'NYC EK X/DXB EK THR Q222.00 172.00XLCHPUS2 EK X/DXB EK NYC Q222.00 172.00XLCHPUS2 PC80.00 NUC868.00END ROE1.0 FARE USD 868.00 TAX 2.50AY TAX 33.40US TAX 5.00XA TAX 4.50XF TAX 7.00XY TAX 5.50YC TAX 22.70IR TOT USD 948.60';
 
 	$parser = itinerary();
+
+	function parse($parser, $string)
+	{
+		print_r($parser(ParseState::mk(StringToCharTokenList::mk($string), ArrayState::mk())));
+	}
 
 	array_map(function ($fc) use($parser) { parse($parser, $fc); }, $fc);
 
