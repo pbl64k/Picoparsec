@@ -2,9 +2,12 @@
 
 	// A sketch of linear fare parser (Apollo format)
 
+	namespace Picoparsec;
+
 	error_reporting(E_ALL | E_STRICT);
 
-	require_once(dirname(__FILE__).'/30km.php');
+	require_once('PicoparsecTokenList.php');
+	require_once('Picoparsec.php');
 
 	function airport() { return str(repeat(alpha(), 3, 3)); }
 
@@ -89,7 +92,7 @@
 
 	function segment()
 	{
-		return function (IParseState $st)
+		return function (\IParseState $st)
 				{
 					$segmentParser = arrstseq(array(
 							'ojdeparture' => attempt(ojdeparture()),
@@ -108,7 +111,7 @@
 
 	function itinerary()
 	{
-		return withstate(ArrayState::mk(), function (IParseState $st)
+		return withstate(\ArrayState::mk(), function (\IParseState $st)
 				{
 					$departureParser = airport();
 
@@ -230,7 +233,7 @@
 
 	function parse($parser, $string)
 	{
-		$res = $parser(ParseState::mk(StringToCharTokenList::mk($string), ArrayState::mk()));
+		$res = $parser(\ParseState::mk(\StringToCharTokenList::mk($string), \ArrayState::mk()));
 
 		print_r($res[0]);
 	}
